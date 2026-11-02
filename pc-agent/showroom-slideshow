@@ -1,0 +1,28 @@
+#!/bin/sh
+# The showroom wall slideshow: every file in /srv/showroom/media, shuffled,
+# looping. Pictures stay up 150 s (the old showroom_tv script did the same),
+# videos play to the end. Full screen; the wallfullscreen KWin script stretches
+# it over the three TVs. Muted unless ~/.config/showroom/sound says "on"
+# (showroom-wall sound-on), like the other TVs at volume 0.
+# Run by showroom-slideshow.service; Home Assistant starts and stops it.
+# If the signage agent has a playlist from Home Assistant (Showroom signage),
+# that is played instead, with its picture time and shuffle setting.
+MEDIA=/srv/showroom/media
+SIGNAGE=/srv/showroom/signage
+SECONDS=150
+SHUFFLE=yes
+SOURCE="$MEDIA"
+if [ -s "$SIGNAGE/playlist.m3u" ]; then
+  . "$SIGNAGE/settings.env"
+  SECONDS=${PICTURE_SECONDS:-150}
+  SOURCE="--playlist=$SIGNAGE/playlist.m3u"
+fi
+[ "$SHUFFLE" = yes ] && ORDER=--shuffle || ORDER=--no-shuffle
+SOUND=$(cat "$HOME/.config/showroom/sound" 2>/dev/null || echo off)
+[ "$SOUND" = on ] && MUTE=no || MUTE=yes
+exec /usr/bin/mpv --fullscreen $ORDER --loop-playlist=inf \
+  --image-display-duration=$SECONDS --mute=$MUTE --volume=100 \
+  --osc=no --osd-level=0 --no-input-default-bindings --input-vo-keyboard=no \
+  --cursor-autohide=always --no-terminal \
+  --input-ipc-server="$XDG_RUNTIME_DIR/showroom-mpv.sock" \
+  "$SOURCE"

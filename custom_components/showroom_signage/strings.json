@@ -1,0 +1,232 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Showroom signage is already set up."
+    },
+    "step": {
+      "user": {
+        "title": "Showroom signage",
+        "description": "Plays pictures and videos from Home Assistant's media folder (Media > My media) on the TVs. Set up playlists and screens afterwards with Configure."
+      }
+    }
+  },
+  "options": {
+    "abort": {
+      "no_playlists": "Add a playlist first.",
+      "no_screens": "No screens yet: add one first."
+    },
+    "error": {
+      "name_required": "Give the playlist a name.",
+      "name_exists": "There is already a playlist with that name.",
+      "playlist_in_use": "Screens still play this playlist: move them to another one first.",
+      "screen_exists": "That TV is already a screen.",
+      "bad_screen_id": "Use lowercase letters, digits and _ only.",
+      "same_times": "Start and end can't be the same."
+    },
+    "step": {
+      "init": {
+        "title": "Showroom signage",
+        "menu_options": {
+          "add_playlist": "Add a playlist",
+          "edit_playlist": "Change or delete a playlist",
+          "add_screen": "Add a Cast TV",
+          "edit_screen": "Change or remove a screen",
+          "add_pc_screen": "Add a PC screen (signage agent)",
+          "default_schedule": "Default schedule"
+        }
+      },
+      "add_playlist": {
+        "title": "New playlist",
+        "description": "Tick the files to show. New files go in Media > My media.",
+        "data": {
+          "name": "Name",
+          "files": "Files",
+          "picture_seconds": "How long each picture stays up",
+          "shuffle": "Random order"
+        },
+        "data_description": {
+          "picture_seconds": "Videos always play to the end."
+        }
+      },
+      "edit_playlist": {
+        "title": "Which playlist?",
+        "data": {
+          "playlist": "Playlist"
+        }
+      },
+      "playlist": {
+        "title": "Playlist {playlist}",
+        "description": "Tick the files to show. New files go in Media > My media.",
+        "data": {
+          "name": "Name",
+          "files": "Files",
+          "picture_seconds": "How long each picture stays up",
+          "shuffle": "Random order",
+          "delete": "Delete this playlist"
+        },
+        "data_description": {
+          "picture_seconds": "Videos always play to the end."
+        }
+      },
+      "add_screen": {
+        "title": "New screen",
+        "description": "Pick the TV's Cast entity (for example media_player.one_tv_cast), not a universal player built on it: those drop the title and picture.",
+        "data": {
+          "name": "Name",
+          "media_player": "TV",
+          "playlist": "Playlist",
+          "picture_seconds": "How long each picture stays up on this TV",
+          "days": "Own schedule: days",
+          "start": "Own schedule: start",
+          "end": "Own schedule: end",
+          "workday_entity": "Own schedule: only while this is on (optional)",
+          "power_entity": "Turn this on and off with the schedule (optional)",
+          "start_volume": "Volume after turning on (optional)",
+          "keep_on": "Own schedule: keep it on during the hours",
+          "enabled": "Enabled",
+          "schedule_mode": "Schedule"
+        },
+        "data_description": {
+          "name": "Leave empty to use the TV's name.",
+          "picture_seconds": "0 = the playlist's time.",
+          "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
+          "power_entity": "What powers the TV itself: for example its media player or a switch.",
+          "start_volume": "0 = muted.",
+          "keep_on": "Starts it again within a minute if it is stopped or the TV leaves the slideshow.",
+          "enabled": "Off: stopped, TV powered off, the schedule leaves it alone.",
+          "schedule_mode": "The default schedule (Configure › Default schedule), its own (below), or none: started and stopped by hand."
+        }
+      },
+      "edit_screen": {
+        "title": "Which screen?",
+        "data": {
+          "screen": "Screen"
+        }
+      },
+      "screen": {
+        "title": "Screen",
+        "description": "Pick the TV's Cast entity (for example media_player.one_tv_cast), not a universal player built on it: those drop the title and picture.",
+        "data": {
+          "name": "Name",
+          "media_player": "TV",
+          "playlist": "Playlist",
+          "picture_seconds": "How long each picture stays up on this TV",
+          "delete": "Remove this screen",
+          "days": "Own schedule: days",
+          "start": "Own schedule: start",
+          "end": "Own schedule: end",
+          "workday_entity": "Own schedule: only while this is on (optional)",
+          "power_entity": "Turn this on and off with the schedule (optional)",
+          "start_volume": "Volume after turning on (optional)",
+          "keep_on": "Own schedule: keep it on during the hours",
+          "enabled": "Enabled",
+          "schedule_mode": "Schedule"
+        },
+        "data_description": {
+          "name": "Leave empty to use the TV's name.",
+          "picture_seconds": "0 = the playlist's time.",
+          "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
+          "power_entity": "What powers the TV itself: for example its media player or a switch.",
+          "start_volume": "0 = muted.",
+          "keep_on": "Starts it again within a minute if it is stopped or the TV leaves the slideshow.",
+          "enabled": "Off: stopped, TV powered off, the schedule leaves it alone.",
+          "schedule_mode": "The default schedule (Configure › Default schedule), its own (below), or none: started and stopped by hand."
+        }
+      },
+      "pc_screen": {
+        "title": "PC screen",
+        "description": "A PC running the signage agent. It downloads the playlist's files from Home Assistant over MQTT and plays them itself. The screen ID must match SCREEN_ID in the agent's settings.",
+        "data": {
+          "name": "Name",
+          "screen_id": "Screen ID",
+          "playlist": "Playlist",
+          "picture_seconds": "How long each picture stays up on this screen",
+          "delete": "Remove this screen",
+          "days": "Own schedule: days",
+          "start": "Own schedule: start",
+          "end": "Own schedule: end",
+          "workday_entity": "Own schedule: only while this is on (optional)",
+          "power_entity": "Turn this on and off with the schedule (optional)",
+          "start_volume": "Volume after turning on (optional)",
+          "keep_on": "Own schedule: keep it on during the hours",
+          "enabled": "Enabled",
+          "schedule_mode": "Schedule"
+        },
+        "data_description": {
+          "screen_id": "For example showroom_wall. MQTT topics: showroom_signage/<screen ID>/...",
+          "picture_seconds": "0 = the playlist's time.",
+          "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
+          "power_entity": "What powers the TV itself: for example its media player or a switch.",
+          "start_volume": "0 = muted.",
+          "keep_on": "Starts it again within a minute if it is stopped or the TV leaves the slideshow.",
+          "enabled": "Off: stopped, TV powered off, the schedule leaves it alone.",
+          "schedule_mode": "The default schedule (Configure › Default schedule), its own (below), or none: started and stopped by hand."
+        }
+      },
+      "add_pc_screen": {
+        "title": "New PC screen",
+        "description": "A PC running the signage agent. It downloads the playlist's files from Home Assistant over MQTT and plays them itself. The screen ID must match SCREEN_ID in the agent's settings.",
+        "data": {
+          "name": "Name",
+          "screen_id": "Screen ID",
+          "playlist": "Playlist",
+          "picture_seconds": "How long each picture stays up on this screen",
+          "days": "Own schedule: days",
+          "start": "Own schedule: start",
+          "end": "Own schedule: end",
+          "workday_entity": "Own schedule: only while this is on (optional)",
+          "power_entity": "Turn this on and off with the schedule (optional)",
+          "start_volume": "Volume after turning on (optional)",
+          "keep_on": "Own schedule: keep it on during the hours",
+          "enabled": "Enabled",
+          "schedule_mode": "Schedule"
+        },
+        "data_description": {
+          "screen_id": "For example showroom_wall. MQTT topics: showroom_signage/<screen ID>/...",
+          "picture_seconds": "0 = the playlist's time.",
+          "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
+          "power_entity": "What powers the TV itself: for example its media player or a switch.",
+          "start_volume": "0 = muted.",
+          "keep_on": "Starts it again within a minute if it is stopped or the TV leaves the slideshow.",
+          "enabled": "Off: stopped, TV powered off, the schedule leaves it alone.",
+          "schedule_mode": "The default schedule (Configure › Default schedule), its own (below), or none: started and stopped by hand."
+        }
+      },
+      "default_schedule": {
+        "title": "Default schedule",
+        "description": "Used by every screen set to the default schedule. An end before the start runs past midnight.",
+        "data": {
+          "days": "Days",
+          "start": "Start",
+          "end": "End",
+          "keep_on": "Keep screens on during the hours",
+          "workday_entity": "Only while this is on (optional)"
+        },
+        "data_description": {
+          "keep_on": "Starts a screen again within a minute if it is stopped or its TV leaves the slideshow. Disable a screen to stop it during the hours.",
+          "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped."
+        }
+      }
+    }
+  },
+  "selector": {
+    "days": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    },
+    "schedule_mode": {
+      "options": {
+        "default": "Default schedule",
+        "own": "Own schedule",
+        "none": "No schedule (start and stop by hand)"
+      }
+    }
+  }
+}

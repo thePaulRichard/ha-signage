@@ -1,0 +1,11 @@
+[Unit]
+Description=Showroom signage agent (playlist from Home Assistant over MQTT)
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/showroom-signage-agent
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

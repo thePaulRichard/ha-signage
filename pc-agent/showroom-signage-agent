@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """Showroom signage agent: plays a Home Assistant signage playlist with mpv.
 
-Home Assistant (the showroom_signage integration) publishes this screen's
-playlist to MQTT, retained, at showroom_signage/<SCREEN_ID>/playlist. This
+Home Assistant (the ha_signage integration) publishes this screen's
+playlist to MQTT, retained, at ha_signage/<SCREEN_ID>/playlist. This
 agent downloads the files it doesn't have into MEDIA_DIR (links signed by
 Home Assistant, so no login here), deletes the ones that left the playlist,
 writes playlist.m3u and settings.env for the slideshow, and loads the new
@@ -45,7 +45,7 @@ def read_conf(path=CONF_FILE):
 CONF = read_conf()
 HA_URL = CONF.get("HA_URL", "http://homeassistant.local:8123").rstrip("/")
 SCREEN_ID = CONF["SCREEN_ID"]
-TOPIC = f"showroom_signage/{SCREEN_ID}"
+TOPIC = f"{CONF.get('TOPIC_PREFIX', 'ha_signage')}/{SCREEN_ID}"
 MEDIA_DIR = Path(CONF.get("MEDIA_DIR", "/srv/showroom/signage"))
 FILES_DIR = MEDIA_DIR / "media"
 INDEX = MEDIA_DIR / "index.json"

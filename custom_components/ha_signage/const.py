@@ -1,6 +1,6 @@
-"""Constants for Showroom signage."""
+"""Constants for Signage."""
 
-DOMAIN = "showroom_signage"
+DOMAIN = "ha_signage"
 PLATFORMS = ["switch", "select", "media_player"]
 
 CONF_PLAYLISTS = "playlists"
@@ -26,7 +26,7 @@ CONF_START_VOLUME = "start_volume"  # optional 0-100, set after powering on
 POWER_ON_WAIT = 15  # seconds between powering a TV on and starting its playlist
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
-MQTT_PREFIX = "showroom_signage"
+MQTT_PREFIX = "ha_signage"
 PC_URL_DAYS = 7  # download links sent to PCs last this long
 PC_REPUBLISH_HOURS = 12  # and are renewed this often
 
@@ -35,7 +35,7 @@ DEFAULT_PICTURE_SECONDS = 150
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTENSIONS = {".mp4", ".m4v", ".mov", ".mkv", ".webm", ".avi"}
 
-THUMB_URL = "/api/showroom_signage/thumb/{key}"
+THUMB_URL = "/api/ha_signage/thumb/{key}"
 
 
 def signal_screen_update(screen_id: str) -> str:

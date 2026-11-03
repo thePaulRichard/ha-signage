@@ -1,11 +1,11 @@
 {
   "config": {
     "abort": {
-      "single_instance_allowed": "Showroom signage is already set up."
+      "single_instance_allowed": "Signage is already set up."
     },
     "step": {
       "user": {
-        "title": "Showroom signage",
+        "title": "Signage",
         "description": "Plays pictures and videos from Home Assistant's media folder (Media > My media) on the TVs. Set up playlists and screens afterwards with Configure."
       }
     }
@@ -25,7 +25,7 @@
     },
     "step": {
       "init": {
-        "title": "Showroom signage",
+        "title": "Signage",
         "menu_options": {
           "add_playlist": "Add a playlist",
           "edit_playlist": "Change or delete a playlist",
@@ -153,7 +153,7 @@
           "schedule_mode": "Schedule"
         },
         "data_description": {
-          "screen_id": "For example showroom_wall. MQTT topics: showroom_signage/<screen ID>/...",
+          "screen_id": "For example showroom_wall. MQTT topics: ha_signage/<screen ID>/...",
           "picture_seconds": "0 = the playlist's time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",
@@ -182,7 +182,7 @@
           "schedule_mode": "Schedule"
         },
         "data_description": {
-          "screen_id": "For example showroom_wall. MQTT topics: showroom_signage/<screen ID>/...",
+          "screen_id": "For example showroom_wall. MQTT topics: ha_signage/<screen ID>/...",
           "picture_seconds": "0 = the playlist's time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",

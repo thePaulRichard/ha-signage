@@ -1,4 +1,4 @@
-# Showroom signage
+# Signage (ha_signage)
 
 A Home Assistant custom integration that turns TVs into digital signage:
 playlists of pictures and videos from Home Assistant's media folder, played on
@@ -31,9 +31,9 @@ users, manages it from a **Signage** page in the sidebar.
 
 ## Install
 
-1. Copy `custom_components/showroom_signage` into `/config/custom_components/`
+1. Copy `custom_components/ha_signage` into `/config/custom_components/`
    (or add this repository to HACS as a custom repository).
-2. Restart Home Assistant, then add **Showroom signage** under
+2. Restart Home Assistant, then add **Signage** under
    Settings > Devices & services. Add playlists and screens under
    **Configure**.
 3. Optional, PC screens: install `pc-agent/` on the PC (Python 3 and

@@ -51,14 +51,14 @@ from .const import (
     VIDEO_EXTENSIONS,
 )
 
-UPLOAD_URL = "/api/showroom_signage/upload"
+UPLOAD_URL = "/api/ha_signage/upload"
 MAX_UPLOAD = 1024 * 1024 * 1024  # 1 GB
 
 
 def _entry(hass: HomeAssistant):
     entries = hass.config_entries.async_loaded_entries(DOMAIN)
     if not entries:
-        raise HomeAssistantError("Showroom signage is not loaded")
+        raise HomeAssistantError("Signage is not loaded")
     return entries[0]
 
 
@@ -102,7 +102,7 @@ def async_register(hass: HomeAssistant) -> None:
     hass.http.register_view(UploadView(hass))
 
 
-@websocket_api.websocket_command({vol.Required("type"): "showroom_signage/state"})
+@websocket_api.websocket_command({vol.Required("type"): "ha_signage/state"})
 @websocket_api.async_response
 async def ws_state(hass, connection, msg):
     from . import async_get_library
@@ -192,7 +192,7 @@ async def ws_state(hass, connection, msg):
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "showroom_signage/save_playlist",
+        vol.Required("type"): "ha_signage/save_playlist",
         vol.Optional("old_name"): str,
         vol.Required("name"): vol.All(str, vol.Strip, vol.Length(min=1, max=60)),
         vol.Required("files"): [str],
@@ -224,7 +224,7 @@ def ws_save_playlist(hass, connection, msg):
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "showroom_signage/delete_playlist", vol.Required("name"): str}
+    {vol.Required("type"): "ha_signage/delete_playlist", vol.Required("name"): str}
 )
 @callback
 def ws_delete_playlist(hass, connection, msg):
@@ -247,7 +247,7 @@ def ws_delete_playlist(hass, connection, msg):
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "showroom_signage/set_screen",
+        vol.Required("type"): "ha_signage/set_screen",
         vol.Required("screen_id"): str,
         vol.Optional("playlist"): str,
         vol.Optional("picture_seconds"): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
@@ -274,7 +274,7 @@ def ws_set_screen(hass, connection, msg):
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "showroom_signage/screen_power",
+        vol.Required("type"): "ha_signage/screen_power",
         vol.Required("screen_id"): str,
         vol.Required("on"): bool,
     }
@@ -293,7 +293,7 @@ def ws_screen_power(hass, connection, msg):
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "showroom_signage/delete_file", vol.Required("name"): str}
+    {vol.Required("type"): "ha_signage/delete_file", vol.Required("name"): str}
 )
 @websocket_api.async_response
 async def ws_delete_file(hass, connection, msg):
@@ -381,7 +381,7 @@ def _schedule_from(msg) -> dict:
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "showroom_signage/set_schedule",
+        vol.Required("type"): "ha_signage/set_schedule",
         vol.Required("screen_id"): str,
         vol.Required("mode"): vol.In(["default", "own", "none"]),
         vol.Optional("days", default=[0, 1, 2, 3, 4]): [vol.All(int, vol.Range(min=0, max=6))],
@@ -408,7 +408,7 @@ def ws_set_schedule(hass, connection, msg):
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "showroom_signage/set_default_schedule", **_SCHEDULE_FIELDS}
+    {vol.Required("type"): "ha_signage/set_default_schedule", **_SCHEDULE_FIELDS}
 )
 @callback
 def ws_set_default_schedule(hass, connection, msg):
@@ -428,7 +428,7 @@ def ws_set_default_schedule(hass, connection, msg):
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "showroom_signage/set_enabled",
+        vol.Required("type"): "ha_signage/set_enabled",
         vol.Required("screen_id"): str,
         vol.Required("enabled"): bool,
     }

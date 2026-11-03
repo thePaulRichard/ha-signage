@@ -7,3 +7,6 @@ MQTT_PORT=1883
 MQTT_USER=showroom-pc
 MQTT_PASSWORD_FILE=/home/display/.config/showroom/mqtt-password
 MEDIA_DIR=/srv/showroom/signage
+# MQTT topic prefix; Home Assistant 0.6+ (ha_signage) uses ha_signage.
+# Set showroom_signage only if Home Assistant still runs 0.5 or older.
+#TOPIC_PREFIX=ha_signage

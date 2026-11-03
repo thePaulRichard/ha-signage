@@ -22,7 +22,7 @@ class ScreenEntity(Entity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, player.screen_id)},
             name=player.screen.get(CONF_NAME) or player.screen_id,
-            manufacturer="Showroom signage",
+            manufacturer="Signage",
             model="Screen",
         )
 

@@ -1,4 +1,4 @@
-"""Showroom signage: playlists of pictures and videos for the office TVs.
+"""Signage: playlists of pictures and videos for the office TVs.
 
 Files come from Home Assistant's local media folder (Media > My media).
 Playlists and screens are set up in the integration's Configure dialog;
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_KIND,
@@ -23,10 +24,12 @@ from .media import MediaLibrary, ThumbnailView
 from .pc import PcScreen
 from .player import ScreenPlayer
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+OLD_DOMAIN = "showroom_signage"  # the name up to 0.5
 DATA_LIBRARY = f"{DOMAIN}_library"
 DATA_PANEL = f"{DOMAIN}_panel"
 PANEL_URL = "signage"
-STATIC_URL = "/showroom_signage_static"
+STATIC_URL = "/ha_signage_static"
 # Screens that were playing; kept across reloads (after a settings change)
 # so the screens carry on. Empty after a Home Assistant restart.
 DATA_RUNNING = f"{DOMAIN}_running"
@@ -62,11 +65,57 @@ async def _async_setup_panel(hass: HomeAssistant) -> None:
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL,
-        webcomponent_name="showroom-signage-panel",
+        webcomponent_name="ha-signage-panel",
         sidebar_title="Signage",
         sidebar_icon="mdi:television-play",
         module_url=f"{STATIC_URL}/panel.js?v={version}",
         require_admin=False,
+    )
+
+
+async def async_setup(hass: HomeAssistant, config) -> bool:
+    await _async_migrate_from_showroom_signage(hass)
+    return True
+
+
+async def _async_migrate_from_showroom_signage(hass: HomeAssistant) -> None:
+    """0.5 and older were "showroom_signage": bring the settings, the media
+    cache and the thumbnails over once, then remove the old entry (its
+    entities go with it, so the new ones get the same entity ids)."""
+    import logging
+    from pathlib import Path
+
+    from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntryState
+    from homeassistant.helpers.storage import Store
+
+    old_entries = hass.config_entries.async_entries(OLD_DOMAIN)
+    if not old_entries or hass.config_entries.async_entries(DOMAIN):
+        return
+    log = logging.getLogger(__name__)
+    if any(e.state is ConfigEntryState.LOADED for e in old_entries):
+        log.warning("Remove custom_components/%s and restart to finish moving to %s", OLD_DOMAIN, DOMAIN)
+        return
+    options = dict(old_entries[0].options)
+    old_store, new_store = Store(hass, 1, f"{OLD_DOMAIN}.media"), Store(hass, 1, f"{DOMAIN}.media")
+    if (cache := await old_store.async_load()) is not None and await new_store.async_load() is None:
+        await new_store.async_save(cache)
+
+    def move_thumbs() -> None:
+        old, new = Path(hass.config.path(OLD_DOMAIN)), Path(hass.config.path(DOMAIN))
+        if old.is_dir() and not new.exists():
+            old.rename(new)
+
+    await hass.async_add_executor_job(move_thumbs)
+    for old in old_entries:
+        try:
+            await hass.config_entries.async_remove(old.entry_id)
+        except Exception:  # noqa: BLE001 - the settings are copied: carry on regardless
+            log.exception("Could not remove the old %s entry", OLD_DOMAIN)
+    await old_store.async_remove()
+    log.info("Moved the %s settings to %s", OLD_DOMAIN, DOMAIN)
+    # not awaited: the new entry is set up once this integration has finished loading
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_IMPORT}, data=options)
     )
 
 

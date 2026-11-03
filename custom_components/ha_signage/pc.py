@@ -1,7 +1,7 @@
 """A PC screen: a PC that plays the playlist itself (the signage agent).
 
 Home Assistant publishes the playlist to MQTT, retained, at
-showroom_signage/<screen>/playlist: the file names, a version of each file
+ha_signage/<screen>/playlist: the file names, a version of each file
 (size and time) and a signed download link. The agent downloads what it is
 missing and plays the list. It reports what is on screen at .../status and
 online/offline at .../availability, and takes play, pause, next and previous

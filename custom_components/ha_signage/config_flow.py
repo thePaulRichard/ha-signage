@@ -1,4 +1,4 @@
-"""Set up Showroom signage, and its Configure dialog: playlists and screens."""
+"""Set up Signage, and its Configure dialog: playlists and screens."""
 
 from __future__ import annotations
 
@@ -145,10 +145,16 @@ class SignageConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="user")
         return self.async_create_entry(
-            title="Showroom signage",
+            title="Signage",
             data={},
             options={CONF_PLAYLISTS: {}, CONF_SCREENS: {}},
         )
+
+    async def async_step_import(self, import_data: dict[str, Any]):
+        """Settings moved over from showroom_signage (0.5 and older)."""
+        if self._async_current_entries():
+            return self.async_abort(reason="already_configured")
+        return self.async_create_entry(title="Signage", data={}, options=import_data)
 
     @staticmethod
     @callback

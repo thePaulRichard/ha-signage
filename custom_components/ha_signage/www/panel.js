@@ -1,4 +1,4 @@
-// Signage page: screens, playlists and media of the Showroom signage integration.
+// Signage page: screens, playlists and media of the Signage integration.
 // A plain web component (no build step) that uses Home Assistant's own elements
 // and theme variables, so it looks like the rest of Home Assistant.
 
@@ -87,7 +87,7 @@ input[type=time] { font:inherit; font-size:15px; color:var(--primary-text-color)
 .media .tile .meta button { background:none; border:none; color:var(--error-color, #db4437); cursor:pointer; padding:2px; line-height:0; }
 `;
 
-class ShowroomSignagePanel extends HTMLElement {
+class SignagePanel extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -144,7 +144,7 @@ class ShowroomSignagePanel extends HTMLElement {
   async _refresh(background = false) {
     if (!this._hass || (background && document.hidden)) return;
     try {
-      this._data = await this._hass.callWS({ type: "showroom_signage/state" });
+      this._data = await this._hass.callWS({ type: "ha_signage/state" });
     } catch (err) {
       if (!background) this._content.innerHTML = `<div class="empty">${esc(err.message || err)}</div>`;
       return;
@@ -219,7 +219,7 @@ class ShowroomSignagePanel extends HTMLElement {
         </div>
       </div>`;
     if (!screens.length) {
-      this._content.innerHTML = defaultCard + `<div class="empty">No screens yet. An admin adds them in Settings › Devices & services › Showroom signage › Configure.</div>`;
+      this._content.innerHTML = defaultCard + `<div class="empty">No screens yet. An admin adds them in Settings › Devices & services › Signage › Configure.</div>`;
       this._bindDefault(def);
       return;
     }
@@ -252,11 +252,11 @@ class ShowroomSignagePanel extends HTMLElement {
     this._content.querySelectorAll(".card[data-id]").forEach((card) => {
       const s = screens.find((x) => x.id === card.dataset.id);
       card.querySelector(".enable-slot").replaceWith(this._switch(s.enabled, (on) =>
-        this._call({ type: "showroom_signage/set_enabled", screen_id: s.id, enabled: on }, `${s.name} ${on ? "enabled" : "disabled"}`)));
+        this._call({ type: "ha_signage/set_enabled", screen_id: s.id, enabled: on }, `${s.name} ${on ? "enabled" : "disabled"}`)));
       card.querySelector(".playlist").addEventListener("change", (e) =>
-        this._call({ type: "showroom_signage/set_screen", screen_id: s.id, playlist: e.target.value }, `${s.name}: playlist ${e.target.value}`));
+        this._call({ type: "ha_signage/set_screen", screen_id: s.id, playlist: e.target.value }, `${s.name}: playlist ${e.target.value}`));
       card.querySelector(".secs").addEventListener("change", (e) =>
-        this._call({ type: "showroom_signage/set_screen", screen_id: s.id, picture_seconds: Number(e.target.value) || 0 },
+        this._call({ type: "ha_signage/set_screen", screen_id: s.id, picture_seconds: Number(e.target.value) || 0 },
           Number(e.target.value) ? `${s.name}: pictures ${e.target.value} s` : `${s.name}: playlist's picture time`));
       card.querySelector(".edit-sched").addEventListener("click", () => {
         this._editing = this._editing === s.id ? null : s.id;
@@ -264,7 +264,7 @@ class ShowroomSignagePanel extends HTMLElement {
         this._renderScreens();
       });
       card.querySelector(".startstop")?.addEventListener("click", () =>
-        this._call({ type: "showroom_signage/screen_power", screen_id: s.id, on: s.state !== "playing" }, `${s.name} ${s.state === "playing" ? "stopped" : "started"}`));
+        this._call({ type: "ha_signage/screen_power", screen_id: s.id, on: s.state !== "playing" }, `${s.name} ${s.state === "playing" ? "stopped" : "started"}`));
       if (this._editing === s.id) this._bindScheduleEditor(card, s);
     });
   }
@@ -281,7 +281,7 @@ class ShowroomSignagePanel extends HTMLElement {
     this._bindTimes(card, d);
     card.querySelector(".save-default").addEventListener("click", async () => {
       if (!d.days.length) return this._toast("Pick at least one day");
-      if (await this._call({ type: "showroom_signage/set_default_schedule", days: d.days, start: d.start.slice(0, 5),
+      if (await this._call({ type: "ha_signage/set_default_schedule", days: d.days, start: d.start.slice(0, 5),
         end: d.end.slice(0, 5), keep_on: !!d.keep_on }, "Default schedule saved")) this._editing = null;
     });
   }
@@ -326,7 +326,7 @@ class ShowroomSignagePanel extends HTMLElement {
     if (d.mode === "own") this._bindTimes(card.querySelector(".sched"), d);
     card.querySelector(".save-sched").addEventListener("click", async () => {
       if (d.mode === "own" && !d.days.length) return this._toast("Pick at least one day");
-      const ok = await this._call({ type: "showroom_signage/set_schedule", screen_id: s.id, mode: d.mode,
+      const ok = await this._call({ type: "ha_signage/set_schedule", screen_id: s.id, mode: d.mode,
         days: d.days, start: d.start.slice(0, 5), end: d.end.slice(0, 5), keep_on: !!d.keep_on }, `${s.name}: schedule saved`);
       if (ok) this._editing = null;
     });
@@ -388,7 +388,7 @@ class ShowroomSignagePanel extends HTMLElement {
       if (!d.name.trim()) return this._toast("Give the playlist a name");
       if (!(d.picture_seconds >= 1)) return this._toast("Pictures need at least 1 second");
       const ok = await this._call({
-        type: "showroom_signage/save_playlist", ...(d.old_name ? { old_name: d.old_name } : {}),
+        type: "ha_signage/save_playlist", ...(d.old_name ? { old_name: d.old_name } : {}),
         name: d.name.trim(), files: files.map((f) => f.name).filter((n) => d.files.has(n)).concat(missing),
         picture_seconds: Math.round(d.picture_seconds), shuffle: d.shuffle,
       }, `Playlist ${d.name.trim()} saved`);
@@ -396,7 +396,7 @@ class ShowroomSignagePanel extends HTMLElement {
     });
     c.querySelector(".delete")?.addEventListener("click", async () => {
       if (!confirm(`Delete the playlist ${d.old_name}?`)) return;
-      if (await this._call({ type: "showroom_signage/delete_playlist", name: d.old_name }, `Playlist ${d.old_name} deleted`)) {
+      if (await this._call({ type: "ha_signage/delete_playlist", name: d.old_name }, `Playlist ${d.old_name} deleted`)) {
         this._selected = null; this._draft = null;
       }
     });
@@ -428,7 +428,7 @@ class ShowroomSignagePanel extends HTMLElement {
     input.addEventListener("change", () => this._upload([...input.files]));
     this._content.querySelectorAll(".del").forEach((b) => b.addEventListener("click", async () => {
       if (!confirm(`Delete ${b.dataset.name} from the media folder?`)) return;
-      await this._call({ type: "showroom_signage/delete_file", name: b.dataset.name }, `${b.dataset.name} deleted`);
+      await this._call({ type: "ha_signage/delete_file", name: b.dataset.name }, `${b.dataset.name} deleted`);
     }));
   }
 
@@ -470,7 +470,7 @@ class ShowroomSignagePanel extends HTMLElement {
     form.append("file", file);
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/showroom_signage/upload");
+      xhr.open("POST", "/api/ha_signage/upload");
       xhr.setRequestHeader("Authorization", `Bearer ${auth.data.access_token}`);
       xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded, e.total); };
       xhr.onload = () => {
@@ -490,4 +490,4 @@ function fmtSize(bytes) {
   return `${Math.max(1, Math.round(bytes / 1e3))} kB`;
 }
 
-customElements.define("showroom-signage-panel", ShowroomSignagePanel);
+customElements.define("ha-signage-panel", SignagePanel);

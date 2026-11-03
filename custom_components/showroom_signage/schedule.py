@@ -178,12 +178,13 @@ async def _async_switch(hass: HomeAssistant, screen_id: str, on: bool, power: bo
                 await asyncio.sleep(POWER_ON_WAIT)
             volume = screen.get(CONF_START_VOLUME)
             if volume is not None and volume != "":
-                target = (
-                    power_entity
-                    if power_entity and power_entity.startswith("media_player.")
-                    else screen.get("media_player")
-                )
-                if target and _supports_volume(hass, target):
+                # the power entity if it can set the volume (a TV), else the Cast device
+                candidates = [
+                    e for e in (power_entity, screen.get("media_player"))
+                    if e and e.startswith("media_player.")
+                ]
+                target = next((e for e in candidates if _supports_volume(hass, e)), None)
+                if target:
                     await _service(hass, "media_player", "volume_set", target, volume_level=int(volume) / 100)
             current = player()
             if isinstance(current, ScreenPlayer):
@@ -193,6 +194,12 @@ async def _async_switch(hass: HomeAssistant, screen_id: str, on: bool, power: bo
             if isinstance(current, ScreenPlayer):
                 running.discard(screen_id)
                 current.stop()
+                # Stopping the loop leaves the last picture on the TV: end the cast too
+                # (only if it is still ours, not something else put on the Chromecast).
+                cast = screen.get("media_player")
+                cast_state = hass.states.get(cast) if cast else None
+                if cast_state is not None and cast_state.attributes.get("app_name") == CAST_APP:
+                    await _service(hass, "media_player", "media_stop", cast)
             if power_entity:
                 await _service(hass, "homeassistant", "turn_off", power_entity)
     finally:

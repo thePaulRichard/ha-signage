@@ -144,17 +144,14 @@ class SignageConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             return self.async_show_form(step_id="user")
+        from . import async_migrate_from_showroom_signage
+
+        options = await async_migrate_from_showroom_signage(self.hass)
         return self.async_create_entry(
             title="Signage",
             data={},
-            options={CONF_PLAYLISTS: {}, CONF_SCREENS: {}},
+            options=options or {CONF_PLAYLISTS: {}, CONF_SCREENS: {}},
         )
-
-    async def async_step_import(self, import_data: dict[str, Any]):
-        """Settings moved over from showroom_signage (0.5 and older)."""
-        if self._async_current_entries():
-            return self.async_abort(reason="already_configured")
-        return self.async_create_entry(title="Signage", data={}, options=import_data)
 
     @staticmethod
     @callback

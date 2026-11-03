@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_KIND,
@@ -24,7 +23,6 @@ from .media import MediaLibrary, ThumbnailView
 from .pc import PcScreen
 from .player import ScreenPlayer
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 OLD_DOMAIN = "showroom_signage"  # the name up to 0.5
 DATA_LIBRARY = f"{DOMAIN}_library"
 DATA_PANEL = f"{DOMAIN}_panel"
@@ -73,28 +71,20 @@ async def _async_setup_panel(hass: HomeAssistant) -> None:
     )
 
 
-async def async_setup(hass: HomeAssistant, config) -> bool:
-    await _async_migrate_from_showroom_signage(hass)
-    return True
-
-
-async def _async_migrate_from_showroom_signage(hass: HomeAssistant) -> None:
-    """0.5 and older were "showroom_signage": bring the settings, the media
-    cache and the thumbnails over once, then remove the old entry (its
-    entities go with it, so the new ones get the same entity ids)."""
+async def async_migrate_from_showroom_signage(hass: HomeAssistant) -> dict | None:
+    """0.5 and older were "showroom_signage". When Signage is added, bring the
+    settings, the media cache and the thumbnails over, then remove the old
+    entry (its entities go with it, so the new ones get the same entity ids).
+    Returns the old settings, or None if there was nothing to move."""
     import logging
     from pathlib import Path
 
-    from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntryState
     from homeassistant.helpers.storage import Store
 
     old_entries = hass.config_entries.async_entries(OLD_DOMAIN)
-    if not old_entries or hass.config_entries.async_entries(DOMAIN):
-        return
+    if not old_entries:
+        return None
     log = logging.getLogger(__name__)
-    if any(e.state is ConfigEntryState.LOADED for e in old_entries):
-        log.warning("Remove custom_components/%s and restart to finish moving to %s", OLD_DOMAIN, DOMAIN)
-        return
     options = dict(old_entries[0].options)
     old_store, new_store = Store(hass, 1, f"{OLD_DOMAIN}.media"), Store(hass, 1, f"{DOMAIN}.media")
     if (cache := await old_store.async_load()) is not None and await new_store.async_load() is None:
@@ -113,10 +103,7 @@ async def _async_migrate_from_showroom_signage(hass: HomeAssistant) -> None:
             log.exception("Could not remove the old %s entry", OLD_DOMAIN)
     await old_store.async_remove()
     log.info("Moved the %s settings to %s", OLD_DOMAIN, DOMAIN)
-    # not awaited: the new entry is set up once this integration has finished loading
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_IMPORT}, data=options)
-    )
+    return options
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

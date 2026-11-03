@@ -6,7 +6,7 @@
     "step": {
       "user": {
         "title": "Signage",
-        "description": "Plays pictures and videos from Home Assistant's media folder (Media > My media) on the TVs. Set up playlists and screens afterwards with Configure."
+        "description": "Plays pictures and videos from Home Assistant's media folder (Media > My media) on the TVs. Set up playlists and screens afterwards with Configure. An existing Showroom signage setup is moved over: playlists, screens and schedules, with the same entity ids."
       }
     }
   },

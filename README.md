@@ -47,3 +47,7 @@ users, manages it from a **Signage** page in the sidebar.
 
 Requires ffmpeg in Home Assistant (it is there in Home Assistant OS) for video
 lengths and thumbnails.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

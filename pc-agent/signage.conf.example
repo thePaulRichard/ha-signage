@@ -1,5 +1,5 @@
-# Showroom signage agent (/usr/local/bin/showroom-signage-agent).
-# SCREEN_ID must match the PC screen in Home Assistant (Showroom signage > Configure).
+# Signage agent (/usr/local/bin/showroom-signage-agent).
+# SCREEN_ID must match the PC screen in Home Assistant (Signage > Configure).
 SCREEN_ID=showroom_wall
 HA_URL=http://homeassistant.local:8123
 MQTT_HOST=homeassistant.local

@@ -223,6 +223,7 @@ class SignagePanel extends HTMLElement {
       this._bindDefault(def);
       return;
     }
+    const listSecs = (s) => (playlists.find((p) => p.name === s.playlist) || {}).picture_seconds;
     this._content.innerHTML = defaultCard + `<div class="grid">${screens.map((s) => `
       <div class="card ${s.enabled ? "" : "disabled"}" data-id="${esc(s.id)}">
         <div class="thumb">${s.now_thumb && s.enabled ? `<img src="${esc(s.now_thumb)}" alt="">` : `<ha-icon icon="${s.enabled ? "mdi:television" : "mdi:television-off"}"></ha-icon>`}</div>
@@ -234,8 +235,10 @@ class SignagePanel extends HTMLElement {
             <label class="field">Playlist
               <select class="playlist">${playlists.map((p) => `<option ${p.name === s.playlist ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>
             </label>
-            <label class="field" style="flex:0 0 110px">Pictures (s)
-              <input class="secs" type="number" min="0" placeholder="Playlist" value="${s.picture_seconds || ""}">
+            <label class="field" style="flex:0 0 120px">Pictures (s)
+              <input class="secs" type="number" min="0" value="${s.picture_seconds || ""}"
+                placeholder="${listSecs(s) ? `Default: ${listSecs(s)}` : "Default"}"
+                title="Leave empty to use the ${esc(s.playlist || "")} playlist's ${listSecs(s) || ""} s; a number here overrides it for this screen only.">
             </label>
           </div>
           <div class="sched">

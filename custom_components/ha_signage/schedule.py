@@ -6,8 +6,9 @@ and stopped by hand). A screen can also be disabled: then it is stopped,
 its TV powered off, and the schedule leaves it alone.
 
 An end before the start runs past midnight. The workday entity is any on/off
-entity, for example a Workday sensor for the country, so public holidays are
-skipped. The screen's power entity is turned on at the start (then a wait,
+entity, for example a Workday sensor for the country: with one, it alone
+decides which days count (weekends and public holidays are its business) and
+the picked days are ignored; without one, the picked days do. The screen's power entity is turned on at the start (then a wait,
 then the volume) and off at the end.
 
 It acts on changes only: at the start time the screen starts, at the end it
@@ -83,7 +84,8 @@ def _time(value: str) -> time:
 
 
 def in_hours(hass: HomeAssistant, schedule: dict, now: datetime) -> bool:
-    days = set(schedule.get("days", []))
+    workday = schedule.get("workday_entity")
+    days = set(range(7)) if workday else set(schedule.get("days", []))
     start, end = _time(schedule["start"]), _time(schedule["end"])
     clock = now.time()
     if start <= end:
@@ -92,7 +94,7 @@ def in_hours(hass: HomeAssistant, schedule: dict, now: datetime) -> bool:
         on = (now.weekday() in days and clock >= start) or (
             (now - timedelta(days=1)).weekday() in days and clock < end
         )
-    if on and (workday := schedule.get("workday_entity")):
+    if on and workday:
         state = hass.states.get(workday)
         on = state is not None and state.state == "on"
     return on
@@ -119,7 +121,9 @@ def describe(schedule: dict | None) -> str:
     if schedule is None:
         return "No schedule"
     days = sorted(set(schedule.get("days", [])))
-    if days == list(range(7)):
+    if schedule.get("workday_entity"):
+        text = "Workdays"
+    elif days == list(range(7)):
         text = "Every day"
     elif days and days == list(range(days[0], days[-1] + 1)) and len(days) > 2:
         text = f"{NAMES[days[0]]}–{NAMES[days[-1]]}"

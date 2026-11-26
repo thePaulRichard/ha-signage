@@ -40,7 +40,7 @@ const STYLE = `
 label.field { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--secondary-text-color); flex:1; }
 select, input[type=number], input[type=text] { font:inherit; font-size:15px; color:var(--primary-text-color);
   background:var(--input-fill-color, var(--secondary-background-color)); border:none; border-bottom:1px solid var(--input-idle-line-color, var(--divider-color));
-  border-radius:4px 4px 0 0; padding:10px 12px; min-width:0; }
+  border-radius:4px 4px 0 0; padding:10px 12px; min-width:0; width:100%; box-sizing:border-box; }
 select:focus, input:focus { outline:none; border-bottom:2px solid var(--primary-color); }
 .btn { font:inherit; font-size:14px; font-weight:500; border:none; border-radius:20px; padding:9px 20px; cursor:pointer;
   background:var(--primary-color); color:var(--text-primary-color, #fff); display:inline-flex; align-items:center; gap:6px; }
@@ -54,6 +54,7 @@ select:focus, input:focus { outline:none; border-bottom:2px solid var(--primary-
 .editor .fields { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; padding:16px; border-bottom:1px solid var(--divider-color); }
 .editor .fields .field.name { flex:2; min-width:200px; }
 .editor .fields .field.secs { flex:0 0 150px; }
+.editor .fields .hint { flex-basis:100%; font-size:12px; margin-top:-8px; }
 .toggle { display:flex; align-items:center; gap:8px; font-size:14px; padding-bottom:8px; }
 .files { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; padding:16px; }
 .tile { border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid transparent; background:var(--secondary-background-color); position:relative; }
@@ -62,14 +63,22 @@ select:focus, input:focus { outline:none; border-bottom:2px solid var(--primary-
 .tile .label { font-size:13px; padding:6px 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tile .check { position:absolute; top:6px; right:6px; color:var(--primary-color); background:var(--card-background-color); border-radius:50%; line-height:0; }
 .tile .badge, .thumb .badge { position:absolute; left:6px; bottom:6px; background:rgba(0,0,0,.65); color:#fff; font-size:11px; padding:2px 6px; border-radius:4px; }
-.actions { display:flex; gap:8px; justify-content:flex-end; align-items:center; padding:12px 16px; border-top:1px solid var(--divider-color); }
-.actions .spacer { flex:1; }
+.card.editor { overflow:visible; }
+.editbar { position:sticky; top:var(--sticky-top, 0px); z-index:2; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  padding:10px 16px; border-bottom:1px solid var(--divider-color); background:var(--ha-card-background, var(--card-background-color, #fff));
+  border-radius:var(--ha-card-border-radius, 12px) var(--ha-card-border-radius, 12px) 0 0; }
+.editbar.stuck { border-radius:0; box-shadow:0 2px 4px rgba(0,0,0,.12); }
+.editbar .spacer { flex:1; }
+.chip.dirty { background:rgba(var(--rgb-warning-color, 255,166,0), .18); color:var(--warning-color, #ffa600); }
+.pick { display:flex; gap:4px; align-items:center; padding:12px 16px 0; }
+.pick .secondary { flex:1; font-size:13px; }
 .section-title { font-size:14px; color:var(--secondary-text-color); margin:4px 0 12px; }
 .empty { padding:32px; text-align:center; color:var(--secondary-text-color); }
 .uploadbar { display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
 .progress { flex-basis:100%; height:6px; border-radius:3px; background:var(--divider-color); overflow:hidden; }
 .progress > div { height:100%; background:var(--primary-color); transition:width .2s; }
 .media .tile { cursor:default; }
+.content.dropping { outline:2px dashed var(--primary-color); outline-offset:-8px; border-radius:12px; }
 .sched { border-top:1px solid var(--divider-color); margin:4px -16px -16px; padding:10px 16px 14px; display:flex; flex-direction:column; gap:10px; }
 .sched .row .secondary { flex:1; }
 .days { display:flex; gap:6px; flex-wrap:wrap; }
@@ -78,6 +87,8 @@ select:focus, input:focus { outline:none; border-bottom:2px solid var(--primary-
 .modes { display:flex; border:1px solid var(--divider-color); border-radius:18px; overflow:hidden; align-self:flex-start; }
 .mode { font:inherit; font-size:13px; padding:6px 16px; background:none; border:none; color:var(--primary-text-color); cursor:pointer; }
 .mode + .mode { border-left:1px solid var(--divider-color); }
+.mode:disabled { opacity:.45; cursor:default; }
+.daysrc { justify-content:flex-start; }
 .mode.on { background:var(--primary-color); color:var(--text-primary-color, #fff); }
 .card.disabled .thumb, .card.disabled .body > :not(:first-child) { opacity:.5; }
 .day.on { background:var(--primary-color); border-color:var(--primary-color); color:var(--text-primary-color, #fff); }
@@ -96,6 +107,13 @@ class SignagePanel extends HTMLElement {
     this._selected = null; // playlist being edited (name, or "" for a new one)
     this._draft = null;
     this._busy = false;
+    this._beforeUnload = (e) => { if (this._dirty()) { e.preventDefault(); e.returnValue = ""; } };
+    this._keydown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s" && this._tab === "playlists" && this._draft) {
+        e.preventDefault();
+        this._savePlaylist();
+      }
+    };
   }
 
   set hass(hass) {
@@ -119,10 +137,14 @@ class SignagePanel extends HTMLElement {
 
   connectedCallback() {
     this._timer = setInterval(() => this._refresh(true), 10000);
+    window.addEventListener("beforeunload", this._beforeUnload);
+    window.addEventListener("keydown", this._keydown);
   }
 
   disconnectedCallback() {
     clearInterval(this._timer);
+    window.removeEventListener("beforeunload", this._beforeUnload);
+    window.removeEventListener("keydown", this._keydown);
   }
 
   _toast(message) {
@@ -176,6 +198,24 @@ class SignagePanel extends HTMLElement {
     if (menu) { menu.hass = this._hass; menu.narrow = this._narrow; }
     this.shadowRoot.querySelectorAll(".tab").forEach((tab) =>
       tab.addEventListener("click", () => { this._tab = tab.dataset.tab; this._render(); }));
+    // drop pictures or videos anywhere on the Media tab to upload them
+    const dropping = (e) => this._tab === "media" && !this._busy && [...(e.dataTransfer?.types || [])].includes("Files");
+    this._content.addEventListener("dragover", (e) => {
+      if (!dropping(e)) return;
+      e.preventDefault();
+      this._content.classList.add("dropping");
+    });
+    this._content.addEventListener("dragleave", (e) => {
+      if (!this._content.contains(e.relatedTarget)) this._content.classList.remove("dropping");
+    });
+    this._content.addEventListener("drop", (e) => {
+      this._content.classList.remove("dropping");
+      if (!dropping(e)) return;
+      e.preventDefault();
+      const list = [...e.dataTransfer.files].filter((f) => /^(image|video)\//.test(f.type));
+      if (list.length) this._upload(list);
+      else this._toast("Only pictures and videos can be uploaded");
+    });
   }
 
   _render() {
@@ -211,8 +251,7 @@ class SignagePanel extends HTMLElement {
         <div class="body">
           <div class="row"><ha-icon icon="mdi:calendar-clock" style="color:var(--secondary-text-color)"></ha-icon>
             <div style="flex:1"><div class="name" style="font-size:16px">Default schedule</div>
-              <div class="secondary">${esc(def.text)}${def.workday_name ? ` · while ${esc(def.workday_name)} is on` : ""}${def.keep_on ? " · kept on" : ""}
-                · ${screens.filter((s) => s.mode === "default").length} screens</div></div>
+              <div class="secondary">${esc(def.text)} · ${((n) => `${n} screen${n === 1 ? "" : "s"}`)(screens.filter((s) => s.mode === "default").length)}</div></div>
             <button class="btn text edit-default">${this._editing === "__default" ? "Close" : "Change"}</button></div>
           ${this._editing === "__default" ? this._timesEditor(this._sched, "Keep screens on during these hours") +
             `<div class="row" style="justify-content:flex-end"><button class="btn save-default">Save</button></div>` : ""}
@@ -235,15 +274,15 @@ class SignagePanel extends HTMLElement {
             <label class="field">Playlist
               <select class="playlist">${playlists.map((p) => `<option ${p.name === s.playlist ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>
             </label>
-            <label class="field" style="flex:0 0 120px">Pictures (s)
+            <label class="field" style="flex:0 0 130px">Display time (s)
               <input class="secs" type="number" min="0" value="${s.picture_seconds || ""}"
                 placeholder="${listSecs(s) ? `Default: ${listSecs(s)}` : "Default"}"
-                title="Leave empty to use the ${esc(s.playlist || "")} playlist's ${listSecs(s) || ""} s; a number here overrides it for this screen only.">
+                title="How long each picture stays up; videos always play to the end. Leave empty to use the ${esc(s.playlist || "")} playlist's ${listSecs(s) || ""} s; a number here overrides it for this screen only.">
             </label>
           </div>
           <div class="sched">
             <div class="row"><ha-icon icon="mdi:calendar-clock" style="color:var(--secondary-text-color)"></ha-icon>
-              <span class="secondary">${modeText[s.mode]}${s.mode !== "none" ? ` · ${esc(s.schedule_text)}` : " · start and stop by hand"}${s.mode === "own" && s.keep_on ? " · kept on" : ""}</span>
+              <span class="secondary">${modeText[s.mode]}${s.mode === "own" ? ` · ${esc(s.schedule_text)}` : ""}</span>
               <button class="btn text edit-sched">${this._editing === s.id ? "Close" : "Change"}</button></div>
             ${s.enabled && s.mode === "none" && s.kind !== "pc" ? `<div class="row" style="justify-content:flex-end">
               <button class="btn text startstop">${s.state === "playing" ? "Stop" : "Start"}</button></div>` : ""}
@@ -260,10 +299,10 @@ class SignagePanel extends HTMLElement {
         this._call({ type: "ha_signage/set_screen", screen_id: s.id, playlist: e.target.value }, `${s.name}: playlist ${e.target.value}`));
       card.querySelector(".secs").addEventListener("change", (e) =>
         this._call({ type: "ha_signage/set_screen", screen_id: s.id, picture_seconds: Number(e.target.value) || 0 },
-          Number(e.target.value) ? `${s.name}: pictures ${e.target.value} s` : `${s.name}: playlist's picture time`));
+          Number(e.target.value) ? `${s.name}: display time ${e.target.value} s` : `${s.name}: playlist's display time`));
       card.querySelector(".edit-sched").addEventListener("click", () => {
         this._editing = this._editing === s.id ? null : s.id;
-        this._sched = { mode: s.mode, ...s.schedule, days: [...s.schedule.days] };
+        this._sched = { mode: s.mode, ...s.schedule, days: [...s.schedule.days], workday_entity: s.workday_entity || null };
         this._renderScreens();
       });
       card.querySelector(".startstop")?.addEventListener("click", () =>
@@ -283,32 +322,66 @@ class SignagePanel extends HTMLElement {
     const d = this._sched;
     this._bindTimes(card, d);
     card.querySelector(".save-default").addEventListener("click", async () => {
-      if (!d.days.length) return this._toast("Pick at least one day");
+      if (!d.workday_entity && !d.days.length) return this._toast("Pick at least one day");
       if (await this._call({ type: "ha_signage/set_default_schedule", days: d.days, start: d.start.slice(0, 5),
-        end: d.end.slice(0, 5), keep_on: !!d.keep_on }, "Default schedule saved")) this._editing = null;
+        end: d.end.slice(0, 5), keep_on: !!d.keep_on, workday_entity: d.workday_entity || null }, "Default schedule saved")) this._editing = null;
     });
+  }
+
+  // Workday sensors to offer, plus the one in use if it's some other on/off entity
+  _workdays(d) {
+    const list = [...(this._data.workday_sensors || [])];
+    if (d.workday_entity && !list.some((w) => w.entity_id === d.workday_entity)) {
+      const st = this._hass.states[d.workday_entity];
+      list.push({ entity_id: d.workday_entity, name: st?.attributes.friendly_name || d.workday_entity });
+    }
+    return list;
   }
 
   _timesEditor(d, keepLabel) {
     const names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const sensors = this._workdays(d);
+    const current = sensors.find((w) => w.entity_id === d.workday_entity);
     return `
-      <div class="days">${names.map((n, i) => `<button class="day ${d.days.includes(i) ? "on" : ""}" data-day="${i}">${n}</button>`).join("")}</div>
+      <div class="row daysrc"><span class="secondary">Days</span>
+        <div class="modes">
+          <button class="mode src ${d.workday_entity ? "on" : ""}" data-src="workday" ${sensors.length ? ""
+            : `disabled title="Add the Workday integration in Settings › Devices & services first"`}>Workdays</button>
+          <button class="mode src ${d.workday_entity ? "" : "on"}" data-src="days">Pick days</button>
+        </div></div>
+      ${d.workday_entity ? (sensors.length > 1
+        ? `<label class="field">Workday sensor<select class="workday">${sensors.map((w) =>
+            `<option value="${esc(w.entity_id)}" ${w.entity_id === d.workday_entity ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></label>`
+        : `<div class="secondary" style="font-size:12px">Runs on the days ${esc(current?.name || d.workday_entity)} counts as workdays, so public holidays are skipped too.</div>`)
+      : `<div class="days">${names.map((n, i) => `<button class="day ${d.days.includes(i) ? "on" : ""}" data-day="${i}">${n}</button>`).join("")}</div>`}
       <div class="row">
         <label class="field">Start<input type="time" class="start" value="${esc(d.start)}"></label>
         <label class="field">End<input type="time" class="end" value="${esc(d.end)}"></label>
       </div>
-      <div class="row"><span class="secondary">${keepLabel}<br><span style="font-size:12px">Starts it again if someone stops it or the TV drops out</span></span><span class="keep-switch"></span></div>
-      <div class="secondary" style="font-size:12px">An end before the start runs past midnight.</div>`;
+      <div class="secondary midnight" style="font-size:12px" ${this._overnight(d) ? "" : "hidden"}>Ends the next day: the end is before the start.</div>
+      <div class="row"><span class="secondary">${keepLabel}<br><span style="font-size:12px">Starts it again if someone stops it or the TV drops out</span></span><span class="keep-switch"></span></div>`;
+  }
+
+  _overnight(d) {
+    return !!(d.start && d.end && d.end.slice(0, 5) < d.start.slice(0, 5));
   }
 
   _bindTimes(root, d) {
+    root.querySelectorAll(".src").forEach((b) => b.addEventListener("click", () => {
+      const sensors = this._workdays(d);
+      if (b.dataset.src === "workday") d.workday_entity = d.workday_entity || this._lastWorkday || sensors[0]?.entity_id || null;
+      else { if (d.workday_entity) this._lastWorkday = d.workday_entity; d.workday_entity = null; }
+      this._renderScreens();
+    }));
+    root.querySelector(".workday")?.addEventListener("change", (e) => (d.workday_entity = e.target.value));
     root.querySelectorAll(".day").forEach((b) => b.addEventListener("click", () => {
       const day = Number(b.dataset.day);
       d.days = d.days.includes(day) ? d.days.filter((x) => x !== day) : [...d.days, day];
       b.classList.toggle("on");
     }));
-    root.querySelector(".start").addEventListener("input", (e) => (d.start = e.target.value));
-    root.querySelector(".end").addEventListener("input", (e) => (d.end = e.target.value));
+    const midnight = () => (root.querySelector(".midnight").hidden = !this._overnight(d));
+    root.querySelector(".start").addEventListener("input", (e) => { d.start = e.target.value; midnight(); });
+    root.querySelector(".end").addEventListener("input", (e) => { d.end = e.target.value; midnight(); });
     root.querySelector(".keep-switch").replaceWith(this._switch(!!d.keep_on, (on) => (d.keep_on = on)));
   }
 
@@ -328,9 +401,10 @@ class SignagePanel extends HTMLElement {
     card.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => { d.mode = b.dataset.mode; this._renderScreens(); }));
     if (d.mode === "own") this._bindTimes(card.querySelector(".sched"), d);
     card.querySelector(".save-sched").addEventListener("click", async () => {
-      if (d.mode === "own" && !d.days.length) return this._toast("Pick at least one day");
+      if (d.mode === "own" && !d.workday_entity && !d.days.length) return this._toast("Pick at least one day");
       const ok = await this._call({ type: "ha_signage/set_schedule", screen_id: s.id, mode: d.mode,
-        days: d.days, start: d.start.slice(0, 5), end: d.end.slice(0, 5), keep_on: !!d.keep_on }, `${s.name}: schedule saved`);
+        days: d.days, start: d.start.slice(0, 5), end: d.end.slice(0, 5), keep_on: !!d.keep_on,
+        ...(d.mode === "own" ? { workday_entity: d.workday_entity || null } : {}) }, `${s.name}: schedule saved`);
       if (ok) this._editing = null;
     });
   }
@@ -343,12 +417,45 @@ class SignagePanel extends HTMLElement {
     this._draft = pl
       ? { old_name: pl.name, name: pl.name, files: new Set(pl.files), picture_seconds: pl.picture_seconds, shuffle: pl.shuffle }
       : { old_name: null, name: "", files: new Set(), picture_seconds: 150, shuffle: true };
+    this._draft.base = this._draftKey(this._draft);
+  }
+
+  _draftKey(d) {
+    return JSON.stringify([d.name.trim(), [...d.files].sort(), Number(d.picture_seconds), !!d.shuffle]);
+  }
+
+  // true when the playlist editor has changes that aren't saved yet
+  _dirty() {
+    return !!this._draft && this._draftKey(this._draft) !== this._draft.base;
+  }
+
+  // "12 files · about 34 min a loop · on ONE TV, TWO TV"
+  _playlistSummary(d) {
+    const { files, screens } = this._data;
+    const users = d.old_name ? screens.filter((s) => s.playlist === d.old_name).map((s) => s.name) : [];
+    let secs = 0;
+    for (const f of files) {
+      if (!d.files.has(f.name)) continue;
+      secs += f.kind === "video" ? f.duration || 0 : Number(d.picture_seconds) || 0;
+    }
+    const loop = secs >= 60 ? ` · about ${Math.round(secs / 60)} min a loop` : secs ? ` · ${Math.round(secs)} s a loop` : "";
+    return `${d.files.size} file${d.files.size === 1 ? "" : "s"}${loop}${users.length ? ` · on ${users.map(esc).join(", ")}` : ""}`;
+  }
+
+  // refresh the bar at the top of the editor without redrawing the thumbnails
+  _updateEditbar() {
+    const d = this._draft;
+    const bar = this._content.querySelector(".editbar");
+    if (!bar || !d) return;
+    const dirty = this._dirty();
+    bar.querySelector(".summary").innerHTML = this._playlistSummary(d);
+    bar.querySelector(".chip.dirty").hidden = !dirty || !d.old_name;
+    bar.querySelector(".save").disabled = !!d.old_name && !dirty;
   }
 
   _renderPlaylists() {
-    const { playlists, files, screens } = this._data;
+    const { playlists, files } = this._data;
     const d = this._draft || (this._selectPlaylist(""), this._draft);
-    const users = d.old_name ? screens.filter((s) => s.playlist === d.old_name).map((s) => s.name) : [];
     const known = new Set(files.map((f) => f.name));
     const missing = [...d.files].filter((f) => !known.has(f));
     this._content.innerHTML = `
@@ -357,52 +464,96 @@ class SignagePanel extends HTMLElement {
         <button class="pchip ${d.old_name === null ? "active" : ""}" data-name=""><ha-icon icon="mdi:plus" style="--mdc-icon-size:18px;vertical-align:-3px"></ha-icon> New playlist</button>
       </div>
       <div class="card editor">
+        <div class="editbar">
+          <span class="secondary summary"></span>
+          <span class="chip dirty" hidden>Unsaved changes</span>
+          <span class="spacer"></span>
+          ${d.old_name ? `<button class="btn danger delete">Delete</button>` : ""}
+          <button class="btn save" title="Ctrl+S"><ha-icon icon="mdi:content-save" style="--mdc-icon-size:18px"></ha-icon> ${d.old_name ? "Save" : "Create"}</button>
+        </div>
         <div class="fields">
           <label class="field name">Name<input type="text" class="pname" value="${esc(d.name)}" placeholder="For example Kitchen"></label>
-          <label class="field secs">Pictures stay up (s)<input type="number" class="psecs" min="1" value="${d.picture_seconds}"></label>
+          <label class="field secs" title="How long each picture stays up">Display time (s)<input type="number" class="psecs" min="1" value="${d.picture_seconds}"></label>
           <div class="toggle"><span class="shuffle-slot"></span>Random order</div>
+          <div class="secondary hint">Display time is for pictures: videos always play to the end.</div>
         </div>
+        ${files.length ? `<div class="pick"><span class="secondary">Tap a picture or video to add it or take it out.</span>
+          <button class="btn text all">Select all</button><button class="btn text none">Clear</button></div>` : ""}
         <div class="files">${files.length ? files.map((f) => `
           <div class="tile ${d.files.has(f.name) ? "selected" : "off"}" data-name="${esc(f.name)}" title="${esc(f.name)}">
             <div class="thumb">${f.thumb ? `<img src="${esc(f.thumb)}" loading="lazy" alt="">` : `<ha-icon icon="mdi:file-image"></ha-icon>`}
               ${f.kind === "video" ? `<span class="badge">▶ ${fmtTime(f.duration)}</span>` : ""}</div>
-            ${d.files.has(f.name) ? `<span class="check"><ha-icon icon="mdi:check-circle"></ha-icon></span>` : ""}
+            <span class="check"><ha-icon icon="mdi:check-circle"></ha-icon></span>
             <div class="label">${esc(f.title)}</div>
           </div>`).join("") : `<div class="empty">No pictures or videos yet: add some in the Media tab.</div>`}
         </div>
         ${missing.length ? `<div class="secondary" style="padding:0 16px 12px">Missing from the media folder (skipped): ${missing.map(esc).join(", ")}</div>` : ""}
-        <div class="actions">
-          <span class="secondary">${d.files.size} file${d.files.size === 1 ? "" : "s"}${users.length ? ` · on ${users.map(esc).join(", ")}` : ""}</span>
-          <span class="spacer"></span>
-          ${d.old_name ? `<button class="btn danger delete">Delete</button>` : ""}
-          <button class="btn save">${d.old_name ? "Save" : "Create"}</button>
-        </div>
       </div>`;
     const c = this._content;
-    c.querySelectorAll(".pchip").forEach((b) => b.addEventListener("click", () => { this._selectPlaylist(b.dataset.name); this._renderPlaylists(); }));
-    c.querySelector(".pname").addEventListener("input", (e) => (d.name = e.target.value));
-    c.querySelector(".psecs").addEventListener("input", (e) => (d.picture_seconds = Number(e.target.value)));
-    c.querySelector(".shuffle-slot").replaceWith(this._switch(d.shuffle, (on) => (d.shuffle = on)));
-    c.querySelectorAll(".tile").forEach((t) => t.addEventListener("click", () => {
-      d.files.has(t.dataset.name) ? d.files.delete(t.dataset.name) : d.files.add(t.dataset.name);
+    // the bar sticks under the page header, which is taller when the tabs wrap
+    const header = this.shadowRoot.querySelector(".header");
+    this.style.setProperty("--sticky-top", `${header ? header.offsetHeight : 0}px`);
+    const bar = c.querySelector(".editbar");
+    const tiles = c.querySelectorAll(".tile");
+    const paint = (t) => {
+      const on = d.files.has(t.dataset.name);
+      t.classList.toggle("selected", on);
+      t.classList.toggle("off", !on);
+      t.querySelector(".check").hidden = !on;
+    };
+    tiles.forEach(paint);
+    this._updateEditbar();
+    if (this._stuck) this._stuck.disconnect();
+    this._stuck = new IntersectionObserver(([e]) => bar.classList.toggle("stuck", e.intersectionRatio < 1),
+      { rootMargin: `-${header ? header.offsetHeight + 1 : 1}px 0px 0px 0px`, threshold: [1] });
+    this._stuck.observe(bar);
+
+    c.querySelectorAll(".pchip").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.name === (d.old_name ?? "")) return;
+      if (this._dirty() && !confirm(`Discard the changes to ${d.old_name || "the new playlist"}?`)) return;
+      this._selectPlaylist(b.dataset.name);
       this._renderPlaylists();
     }));
-    c.querySelector(".save").addEventListener("click", async () => {
-      if (!d.name.trim()) return this._toast("Give the playlist a name");
-      if (!(d.picture_seconds >= 1)) return this._toast("Pictures need at least 1 second");
-      const ok = await this._call({
-        type: "ha_signage/save_playlist", ...(d.old_name ? { old_name: d.old_name } : {}),
-        name: d.name.trim(), files: files.map((f) => f.name).filter((n) => d.files.has(n)).concat(missing),
-        picture_seconds: Math.round(d.picture_seconds), shuffle: d.shuffle,
-      }, `Playlist ${d.name.trim()} saved`);
-      if (ok) { this._selected = d.name.trim(); d.old_name = d.name.trim(); this._renderPlaylists(); }
-    });
+    c.querySelector(".pname").addEventListener("input", (e) => { d.name = e.target.value; this._updateEditbar(); });
+    c.querySelector(".psecs").addEventListener("input", (e) => { d.picture_seconds = Number(e.target.value); this._updateEditbar(); });
+    c.querySelector(".shuffle-slot").replaceWith(this._switch(d.shuffle, (on) => { d.shuffle = on; this._updateEditbar(); }));
+    tiles.forEach((t) => t.addEventListener("click", () => {
+      d.files.has(t.dataset.name) ? d.files.delete(t.dataset.name) : d.files.add(t.dataset.name);
+      paint(t);
+      this._updateEditbar();
+    }));
+    c.querySelector(".all")?.addEventListener("click", () => { files.forEach((f) => d.files.add(f.name)); tiles.forEach(paint); this._updateEditbar(); });
+    c.querySelector(".none")?.addEventListener("click", () => { d.files.clear(); tiles.forEach(paint); this._updateEditbar(); });
+    c.querySelector(".save").addEventListener("click", () => this._savePlaylist());
     c.querySelector(".delete")?.addEventListener("click", async () => {
       if (!confirm(`Delete the playlist ${d.old_name}?`)) return;
       if (await this._call({ type: "ha_signage/delete_playlist", name: d.old_name }, `Playlist ${d.old_name} deleted`)) {
         this._selected = null; this._draft = null;
       }
     });
+  }
+
+  async _savePlaylist() {
+    const d = this._draft;
+    if (this._saving || (d.old_name && !this._dirty())) return;
+    if (!d.name.trim()) return this._toast("Give the playlist a name");
+    if (!(d.picture_seconds >= 1)) return this._toast("Display time needs at least 1 second");
+    const { files } = this._data;
+    const known = new Set(files.map((f) => f.name));
+    this._saving = true;
+    const ok = await this._call({
+      type: "ha_signage/save_playlist", ...(d.old_name ? { old_name: d.old_name } : {}),
+      name: d.name.trim(), files: files.map((f) => f.name).filter((n) => d.files.has(n)).concat([...d.files].filter((n) => !known.has(n))),
+      picture_seconds: Math.round(d.picture_seconds), shuffle: d.shuffle,
+    }, `Playlist ${d.name.trim()} saved`);
+    this._saving = false;
+    if (ok) {
+      this._selected = d.name.trim();
+      d.name = d.name.trim();
+      d.old_name = d.name;
+      d.base = this._draftKey(d);
+      if (this._tab === "playlists") this._renderPlaylists();
+    }
   }
 
   // ------------------------------------------------------------ media
@@ -413,7 +564,7 @@ class SignagePanel extends HTMLElement {
     this._content.innerHTML = `
       <div class="uploadbar">
         <button class="btn upload" ${this._busy ? "disabled" : ""}><ha-icon icon="mdi:upload" style="--mdc-icon-size:18px"></ha-icon> Upload pictures or videos</button>
-        <span class="secondary status">${this._busy ? esc(this._busy) : `${files.length} files · then tick them in a playlist`}</span>
+        <span class="secondary status">${this._busy ? esc(this._busy) : `${files.length} files · or drop them here · then add them to a playlist`}</span>
         <input type="file" multiple accept="image/*,video/*" hidden>
         ${this._busy && this._progress != null ? `<div class="progress"><div style="width:${this._progress}%"></div></div>` : ""}
       </div>

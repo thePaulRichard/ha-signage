@@ -41,11 +41,11 @@
         "data": {
           "name": "Name",
           "files": "Files",
-          "picture_seconds": "How long each picture stays up",
+          "picture_seconds": "Display time (seconds)",
           "shuffle": "Random order"
         },
         "data_description": {
-          "picture_seconds": "Videos always play to the end."
+          "picture_seconds": "How long each picture stays up; videos always play to the end."
         }
       },
       "edit_playlist": {
@@ -60,12 +60,12 @@
         "data": {
           "name": "Name",
           "files": "Files",
-          "picture_seconds": "How long each picture stays up",
+          "picture_seconds": "Display time (seconds)",
           "shuffle": "Random order",
           "delete": "Delete this playlist"
         },
         "data_description": {
-          "picture_seconds": "Videos always play to the end."
+          "picture_seconds": "How long each picture stays up; videos always play to the end."
         }
       },
       "add_screen": {
@@ -75,7 +75,7 @@
           "name": "Name",
           "media_player": "TV",
           "playlist": "Playlist",
-          "picture_seconds": "How long each picture stays up on this TV",
+          "picture_seconds": "Display time (seconds) on this TV",
           "days": "Own schedule: days",
           "start": "Own schedule: start",
           "end": "Own schedule: end",
@@ -88,7 +88,7 @@
         },
         "data_description": {
           "name": "Leave empty to use the TV's name.",
-          "picture_seconds": "0 = the playlist's time.",
+          "picture_seconds": "How long each picture stays up; videos always play to the end. 0 = the playlist's display time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",
           "start_volume": "0 = muted.",
@@ -110,7 +110,7 @@
           "name": "Name",
           "media_player": "TV",
           "playlist": "Playlist",
-          "picture_seconds": "How long each picture stays up on this TV",
+          "picture_seconds": "Display time (seconds) on this TV",
           "delete": "Remove this screen",
           "days": "Own schedule: days",
           "start": "Own schedule: start",
@@ -124,7 +124,7 @@
         },
         "data_description": {
           "name": "Leave empty to use the TV's name.",
-          "picture_seconds": "0 = the playlist's time.",
+          "picture_seconds": "How long each picture stays up; videos always play to the end. 0 = the playlist's display time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",
           "start_volume": "0 = muted.",
@@ -140,7 +140,7 @@
           "name": "Name",
           "screen_id": "Screen ID",
           "playlist": "Playlist",
-          "picture_seconds": "How long each picture stays up on this screen",
+          "picture_seconds": "Display time (seconds) on this screen",
           "delete": "Remove this screen",
           "days": "Own schedule: days",
           "start": "Own schedule: start",
@@ -154,7 +154,7 @@
         },
         "data_description": {
           "screen_id": "For example showroom_wall. MQTT topics: ha_signage/<screen ID>/...",
-          "picture_seconds": "0 = the playlist's time.",
+          "picture_seconds": "How long each picture stays up; videos always play to the end. 0 = the playlist's display time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",
           "start_volume": "0 = muted.",
@@ -170,7 +170,7 @@
           "name": "Name",
           "screen_id": "Screen ID",
           "playlist": "Playlist",
-          "picture_seconds": "How long each picture stays up on this screen",
+          "picture_seconds": "Display time (seconds) on this screen",
           "days": "Own schedule: days",
           "start": "Own schedule: start",
           "end": "Own schedule: end",
@@ -183,7 +183,7 @@
         },
         "data_description": {
           "screen_id": "For example showroom_wall. MQTT topics: ha_signage/<screen ID>/...",
-          "picture_seconds": "0 = the playlist's time.",
+          "picture_seconds": "How long each picture stays up; videos always play to the end. 0 = the playlist's display time.",
           "workday_entity": "For example a Workday sensor for your country, so public holidays are skipped.",
           "power_entity": "What powers the TV itself: for example its media player or a switch.",
           "start_volume": "0 = muted.",

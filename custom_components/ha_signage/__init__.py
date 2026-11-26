@@ -155,4 +155,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             player.stop()
         elif player._task is not None:  # stop without forgetting it was running
             player._task.cancel()
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
+    # Take the page out too, so setup registers it again with panel.js's new
+    # mtime in its URL: otherwise browsers keep the old cached page until HA restarts.
+    from homeassistant.components import frontend
+
+    frontend.async_remove_panel(hass, PANEL_URL, warn_if_unknown=False)
+    return True

@@ -153,6 +153,7 @@ async def ws_state(hass, connection, msg):
             "schedule_text": describe_schedule(effective(entry.options, screen)),
             "keep_on": bool((effective(entry.options, screen) or {}).get("keep_on")),
             "workday_name": _name(hass, (effective(entry.options, screen) or {}).get("workday_entity")),
+            "workday_entity": screen.get(CONF_WORKDAY_ENTITY),
             "power_name": _name(hass, screen.get(CONF_POWER_ENTITY)),
         }
         if isinstance(player, PcScreen):
@@ -185,7 +186,9 @@ async def ws_state(hass, connection, msg):
                 **{k: default[k] for k in ("days", "start", "end", "keep_on")},
                 "text": describe_schedule(default),
                 "workday_name": _name(hass, default.get("workday_entity")),
+                "workday_entity": default.get("workday_entity"),
             },
+            "workday_sensors": _workday_sensors(hass),
         },
     )
 
@@ -367,7 +370,30 @@ _SCHEDULE_FIELDS = {
     vol.Required("start"): _TIME,
     vol.Required("end"): _TIME,
     vol.Optional("keep_on", default=False): bool,
+    # missing = leave as it is; None or "" = picked days; an entity = its workdays
+    vol.Optional("workday_entity"): vol.Any(None, str),
 }
+
+
+def _workday_sensors(hass: HomeAssistant) -> list[dict]:
+    """The Workday integration's sensors, to offer as the days to run on."""
+    from homeassistant.helpers import entity_registry as er
+
+    return sorted(
+        ({"entity_id": e.entity_id, "name": _name(hass, e.entity_id)}
+         for e in er.async_get(hass).entities.values()
+         if e.platform == "workday" and e.domain == "binary_sensor" and not e.disabled),
+        key=lambda w: (w["name"] or "").lower(),
+    )
+
+
+def _workday_from(hass, connection, msg) -> tuple[bool, str | None]:
+    """(ok, entity): the workday entity in msg, checked; None = picked days."""
+    entity = msg.get("workday_entity") or None
+    if entity and hass.states.get(entity) is None:
+        connection.send_error(msg["id"], "invalid", f"{entity} doesn't exist")
+        return False, None
+    return True, entity
 
 
 def _schedule_from(msg) -> dict:
@@ -388,6 +414,7 @@ def _schedule_from(msg) -> dict:
         vol.Optional("start", default="08:30"): _TIME,
         vol.Optional("end", default="18:00"): _TIME,
         vol.Optional("keep_on", default=False): bool,
+        vol.Optional("workday_entity"): vol.Any(None, str),
     }
 )
 @callback
@@ -402,6 +429,14 @@ def ws_set_schedule(hass, connection, msg):
     if msg["mode"] == "own" and msg["start"] == msg["end"]:
         connection.send_error(msg["id"], "invalid", "Start and end can't be the same")
         return
+    if "workday_entity" in msg:
+        ok, workday = _workday_from(hass, connection, msg)
+        if not ok:
+            return
+        if workday:
+            screen[CONF_WORKDAY_ENTITY] = workday
+        else:
+            screen.pop(CONF_WORKDAY_ENTITY, None)
     screen[CONF_SCHEDULE] = {"mode": msg["mode"], **_schedule_from(msg)}
     _save(hass, entry, options)
     connection.send_result(msg["id"])
@@ -412,7 +447,7 @@ def ws_set_schedule(hass, connection, msg):
 )
 @callback
 def ws_set_default_schedule(hass, connection, msg):
-    """The default schedule (its workday entity is set in Configure)."""
+    """The default schedule (its days, hours, keep on and workday entity)."""
     entry = _entry(hass)
     if msg["start"] == msg["end"]:
         connection.send_error(msg["id"], "invalid", "Start and end can't be the same")
@@ -422,6 +457,11 @@ def ws_set_default_schedule(hass, connection, msg):
         **(options.get(CONF_DEFAULT_SCHEDULE) or {}),
         **_schedule_from(msg),
     }
+    if "workday_entity" in msg:
+        ok, workday = _workday_from(hass, connection, msg)
+        if not ok:
+            return
+        options[CONF_DEFAULT_SCHEDULE]["workday_entity"] = workday
     _save(hass, entry, options)
     connection.send_result(msg["id"])
 
